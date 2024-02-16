@@ -6,7 +6,7 @@
         {
             "label": "run",
             "type": "shell",
-            "command": "python -m dw",
+            "command": "python -m mod_io_downloader",
             "problemMatcher": [],
             "group": {
                 "kind": "build",
