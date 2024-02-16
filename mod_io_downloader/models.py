@@ -1,7 +1,7 @@
 from typing import List
 from pathlib import Path
 
-from pydantic import BaseModel, HttpUrl, RootModel
+from pydantic import BaseModel, Field, HttpUrl, RootModel
 
 
 class ConfigModel(BaseModel):
@@ -27,8 +27,13 @@ class ModFileModel(BaseModel):
 
 class ModInfoModel(BaseModel):
     name: str
+    mod_id: int = Field(alias="id")
     modfile: ModFileModel
     date_updated: int
+
+    class Config:
+        extra = "allow"
+        populate_by_name = True
 
 
 class InstalledModModel(BaseModel):
@@ -40,3 +45,7 @@ class InstalledModModel(BaseModel):
 
 class InstalledModCollection(RootModel):
     root: List[InstalledModModel]
+
+
+class ModsInfoModel(BaseModel):
+    data: List[ModInfoModel]

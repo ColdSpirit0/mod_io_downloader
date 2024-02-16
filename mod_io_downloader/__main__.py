@@ -1,13 +1,12 @@
 from termcolor import colored
 import requests
-import json
 import tempfile
 import zipfile
 from tqdm import tqdm
 from pathlib import Path
 import shutil
 
-from .models import ConfigModel, InstalledModModel, ModInfoModel, InstalledModCollection
+from .models import ConfigModel, InstalledModCollection, InstalledModModel, ModInfoModel, ModsInfoModel
 
 
 
@@ -35,70 +34,111 @@ def unpack_zip_file(zip_file, destination):
         zip_ref.extractall(destination)
 
 
+def get_mods_info(mod_ids: list[int], api_key: str):
+
+    ids = ",".join(map(str, mod_ids))
+    url = f"https://api.mod.io/v1/games/169/mods?id-in={ids}&api_key={api_key}"
+    response = requests.get(url)
+
+    return ModsInfoModel.model_validate_json(response.text)
+
+
 def main():
     config = ConfigModel.model_validate_json(Path("config.json").read_text())
 
+    modio_local_path = Path.cwd() / ".modio"
+    mods_local_path = modio_local_path / "mods"
+
+    installed_mods_info: list[ModInfoModel] = []
+
+
+    # iterate over local directories and get all needed and installed mods info
+    for mod_info in config.mod_ids:
+        modio_json_path = mods_local_path / str(mod_info) / "modio.json"
+        if modio_json_path.is_file():
+            modio_text = modio_json_path.read_text()
+            mod_info = ModInfoModel.model_validate_json(modio_text)
+            installed_mods_info.append(mod_info)
+
+
+    # get all needed mods info from server
+    needed_mods_info = get_mods_info(config.mod_ids, config.api_key)
+
+    # if mod is not installed or hash changed, add it to download list
+    mods_to_download: list[ModInfoModel] = []
+    for needed_mod in needed_mods_info.data:
+        # try to search for installed mod with same id
+        installed_mod = None
+        for mod_info in installed_mods_info:
+            if mod_info.mod_id == needed_mod.mod_id:
+                installed_mod = mod_info
+
+        # if mod not found, add to download list
+        if installed_mod is None:
+            mods_to_download.append(needed_mod)
+            continue
+
+        # if hash changed, add to download list
+        if needed_mod.modfile.filehash.md5 != installed_mod.modfile.filehash.md5:
+            mods_to_download.append(needed_mod)
+            continue
+
+    print("Mods to download:")
+    print(*[f"{mod.mod_id}: {mod.name}" for mod in mods_to_download], sep="\n")
+
+    with tempfile.TemporaryDirectory() as t:
+        # download and unpack in temp dir
+        for idx, mod_info in enumerate(mods_to_download):
+            print(colored(
+                f"► ({idx + 1}/{len(mods_to_download)}) Downloading mod {mod_info.mod_id}: {mod_info.name}",
+                "green"))
+
+            tmp_dir = Path(t)
+            tmp_mod_dir = tmp_dir / str(mod_info.mod_id)
+            mod_zip_path = tmp_dir / f'modfile_{mod_info.mod_id}.zip'
+
+            tmp_mod_dir.mkdir()
+            download_mod_file(mod_info.modfile.download.binary_url, mod_zip_path)
+            unpack_zip_file(mod_zip_path, tmp_mod_dir)
+            mod_zip_path.unlink()
+
+            # write modio.json
+            tmp_modio_json = tmp_mod_dir / 'modio.json'
+            tmp_modio_json.write_text(mod_info.model_dump_json(indent=4), encoding="utf-8")
+
+
+        # remove mods dirs from .modio dir
+        # move new mods dirs from tmp to .modio dir
+        for mod_info in mods_to_download:
+            mod_local_path = mods_local_path / str(mod_info.mod_id)
+            tmp_mod_dir = tmp_dir / str(mod_info.mod_id)
+
+            if mod_local_path.exists():
+                shutil.rmtree(mod_local_path)
+            shutil.move(tmp_mod_dir, mod_local_path)
+
+
+    # wirite installed_mods.json
     installed_mods = []
-
-    mods_total = len(config.mod_ids)
-
-    # TODO
-    # https://api.mod.io/v1/games/169/mods?id-in={comma_separated_mod_ids}&api_key={api_key}
-
-    for idx, mod_id in enumerate(config.mod_ids):
-        print(colored(f"► ({idx + 1}/{mods_total}) Downloading mod with ID {mod_id}...", "green"))
-        mod_info, mod_info_text = get_mod_info(mod_id, config.api_key)
-
-        # Extracting relevant information
-        print(f"Name: {mod_info.name}")
-
-        mod_dir = Path.cwd() / '.modio' / 'mods' / str(mod_id)
-        mod_dir.mkdir(parents=True, exist_ok=True)
-
-        mod_json_path = mod_dir / 'modio.json'
+    for mod_info in installed_mods_info:
         date_updated = mod_info.date_updated
         modfile_id = mod_info.modfile.id
-        download_url = mod_info.modfile.download.binary_url
-        modio_dir = config.root / '.modio' / 'mods' / str(mod_id)
-
+        modio_dir = config.root / '.modio' / 'mods' / str(mod_info.mod_id)
         # register mod as installed
         installed_mod = InstalledModModel(
             date_updated=date_updated,
-            mod_id=mod_id,
+            mod_id=mod_info.mod_id,
             modfile_id=modfile_id,
             path=modio_dir.as_posix()
         )
         installed_mods.append(installed_mod)
 
-        # check if {mod_id}/modio.json exists
-        if mod_json_path.is_file():
-            print("Found modio.json, checking file hash...")
-            modio_json = ModInfoModel.model_validate_json(
-                mod_json_path.read_text())
-
-            # skip downloading if file hash matches
-            if modio_json.modfile.filehash.md5 == mod_info.modfile.filehash.md5:
-                print("Skipping download")
-                continue
-            else:
-                # delete mod
-                shutil.rmtree(mod_dir)
-
-        # download and unpack
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            mod_file_path = Path(tmp_dir) / f'modfile_{modfile_id}.zip'
-            download_mod_file(download_url, mod_file_path)
-            unpack_zip_file(mod_file_path, mod_dir)
-
-            mod_info_json = json.loads(mod_info_text)
-            mod_json_path.write_text(
-                json.dumps(mod_info_json, indent=4))
-
-    installed_mods_collection = InstalledModCollection(root=installed_mods)
-    installed_mods_path = Path.cwd() / '.modio' / 'installed_mods.json'
-
+    installed_mods_path = modio_local_path / "installed_mods.json"
     installed_mods_path.write_text(
-        installed_mods_collection.model_dump_json(indent=4))
+        InstalledModCollection(root=installed_mods)
+        .model_dump_json(indent=4),
+        encoding="utf-8"
+    )
 
 
 if __name__ == "__main__":
