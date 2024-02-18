@@ -23,7 +23,7 @@ def get_game_config_path(config: AppConfig):
 @click.argument("api_key")
 @click.argument("game_root", type=click.Path(exists=True, dir_okay=True, path_type=Path), default=Path.cwd())
 def main(api_key: str, game_root: Path):
-    print("Game root: " + str(game_root))
+    print("Game root: " + str(game_root.resolve()))
     config = AppConfig(api_key, game_root)
 
     game_config_path = get_game_config_path(config)
