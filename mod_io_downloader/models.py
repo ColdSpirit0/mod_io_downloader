@@ -22,6 +22,7 @@ class ModInfoModel(BaseModel):
     mod_id: int = Field(alias="id")
     modfile: ModFileModel
     date_updated: int
+    visible: int
 
     class Config:
         extra = "allow"
