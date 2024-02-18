@@ -5,3 +5,30 @@ max-line-length = 120
 [tool.autopep8]
 ignore = ["E402", "W503", "E127", "E126", "E303"]
 max-line-length = 120
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "mod_io_downloader"
+version = "1.0.0"
+authors = [{ name = "ColdSpirit" }]
+license = { file = "LICENSE" }
+description = "Downloads mods faster than mod.io plugin (for Mordhau Server)"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pathvalidate==3.2.0",
+    "pydantic==2.6.1",
+    "requests==2.31.0",
+    "termcolor==2.4.0",
+    "tqdm==4.66.2",
+    "unreal_ini_parser==1.0.0",
+    "click==8.1.7",
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU Affero General Public License v3",
+    "Operating System :: OS Independent",
+]

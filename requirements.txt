@@ -1,6 +1,0 @@
-pathvalidate==3.2.0
-pydantic==2.6.1
-requests==2.31.0
-termcolor==2.4.0
-tqdm==4.66.2
-unreal_ini_parser==1.0.0
