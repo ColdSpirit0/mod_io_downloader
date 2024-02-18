@@ -1,5 +1,4 @@
-from unreal_ini_parser import IniParser
-from unreal_ini_parser.exceptions import KeyNotFoundException
+from unreal_ini_parser import IniParser, KeyNotFoundException
 
 
 class GameConfigParser(IniParser):
