@@ -1,3 +1,4 @@
+import platform
 from termcolor import colored
 import requests
 import tempfile
@@ -6,8 +7,9 @@ from tqdm import tqdm
 from pathlib import Path
 import shutil
 
-from .models import ConfigModel, InstalledModCollection, InstalledModModel, ModInfoModel, ModsInfoModel
-
+from .config_parser import ConfigParser
+from .game_config_parser import GameConfigParser
+from .models import InstalledModCollection, InstalledModModel, ModInfoModel, ModsInfoModel
 
 
 def get_mod_info(mod_id, api_key):
@@ -43,17 +45,35 @@ def get_mods_info(mod_ids: list[int], api_key: str):
     return ModsInfoModel.model_validate_json(response.text)
 
 
-def main():
-    config = ConfigModel.model_validate_json(Path("config.json").read_text())
+def get_game_config_path(config: ConfigParser):
+    config_path = config.root / "Mordhau" / "Saved" / "Config/" / f"{platform.system()}Server"
+    if config_path.is_dir():
+        game_ini_path = config_path / "Game.ini"
+        if game_ini_path.is_file():
+            return game_ini_path
 
-    modio_local_path = Path.cwd() / ".modio"
+    raise FileNotFoundError("Game.ini not found in path: " + str(config_path))
+
+
+def main():
+    config = ConfigParser()
+    config.read(Path("config.ini"))
+
+    game_config_path = get_game_config_path(config)
+    game_config = GameConfigParser()
+    game_config.read(game_config_path)
+
+    modio_local_path = config.root / "Mordhau" / "Content" / ".modio"
     mods_local_path = modio_local_path / "mods"
 
     installed_mods_info: list[ModInfoModel] = []
 
+    if len(game_config.mod_ids) == 0:
+        print(colored("Game.ini does not contain any 'Mods' keys, nothing to download", "yellow"))
+        return
 
     # iterate over local directories and get all needed and installed mods info
-    for mod_info in config.mod_ids:
+    for mod_info in game_config.mod_ids:
         modio_json_path = mods_local_path / str(mod_info) / "modio.json"
         if modio_json_path.is_file():
             modio_text = modio_json_path.read_text()
@@ -62,7 +82,7 @@ def main():
 
 
     # get all needed mods info from server
-    needed_mods_info = get_mods_info(config.mod_ids, config.api_key)
+    needed_mods_info = get_mods_info(game_config.mod_ids, config.api_key)
 
     # if mod is not installed or hash changed, add it to download list
     mods_to_download: list[ModInfoModel] = []
@@ -83,8 +103,12 @@ def main():
             mods_to_download.append(needed_mod)
             continue
 
-    print("Mods to download:")
-    print(*[f"{mod.mod_id}: {mod.name}" for mod in mods_to_download], sep="\n")
+    if len(mods_to_download) == 0:
+        print(colored("All mods are up to date", "green"))
+        return
+    else:
+        print("Mods to download:")
+        print(*[f"{mod.mod_id}: {mod.name}" for mod in mods_to_download], sep="\n")
 
     with tempfile.TemporaryDirectory() as t:
         # download and unpack in temp dir

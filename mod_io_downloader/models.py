@@ -1,14 +1,6 @@
 from typing import List
-from pathlib import Path
 
 from pydantic import BaseModel, Field, HttpUrl, RootModel
-
-
-class ConfigModel(BaseModel):
-    mod_ids: List[int]
-    root: Path
-    api_key: str
-    copy_path: Path | None
 
 
 class FileHashModel(BaseModel):
