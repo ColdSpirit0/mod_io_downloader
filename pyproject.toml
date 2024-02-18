@@ -32,3 +32,7 @@ classifiers = [
     "License :: OSI Approved :: GNU Affero General Public License v3",
     "Operating System :: OS Independent",
 ]
+
+[project.urls]
+Homepage = "https://github.com/ColdSpirit0/mod_io_downloader"
+Issues = "https://github.com/ColdSpirit0/mod_io_downloader/issues"
