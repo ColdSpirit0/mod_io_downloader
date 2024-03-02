@@ -59,10 +59,8 @@ def download_mods(mods_local_path: Path, mods_to_download: list[ModInfoModel], c
             _, mod_info_text = get_mod_info(mod_info.mod_id, config.api_key)
             tmp_modio_json.write_text(mod_info_text, encoding="utf-8")
 
-
-        # remove mods dirs from .modio dir
-        # move new mods dirs from tmp to .modio dir
-        for mod_info in mods_to_download:
+            # remove mods dir from .modio dir
+            # move downloaded mod dir from tmp to .modio dir
             mod_local_path = mods_local_path / str(mod_info.mod_id)
             tmp_mod_dir = tmp_dir / str(mod_info.mod_id)
 

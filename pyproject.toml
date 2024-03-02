@@ -24,7 +24,7 @@ dependencies = [
     "requests==2.31.0",
     "termcolor==2.4.0",
     "tqdm==4.66.2",
-    "unreal_ini_parser==1.0.0",
+    "unreal_ini_parser==1.0.2",
     "click==8.1.7",
 ]
 classifiers = [
