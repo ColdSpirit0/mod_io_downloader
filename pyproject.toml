@@ -12,7 +12,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mod_io_downloader"
-version = "1.0.2"
+version = "1.0.3"
 authors = [{ name = "ColdSpirit" }]
 license = { file = "LICENSE" }
 description = "Downloads mods faster than mod.io plugin (for Mordhau Server)"
