@@ -43,10 +43,13 @@ def main(api_key: str, game_root: Path):
     for mod_info in game_config.mod_ids:
         modio_json_path = mods_local_path / str(mod_info) / "modio.json"
         if modio_json_path.is_file():
-            modio_text = modio_json_path.read_text()
-            mod_info = ModInfoModel.model_validate_json(modio_text)
-            installed_mods_info.append(mod_info)
-
+            try:
+                modio_text = modio_json_path.read_text(encoding="utf-8")
+                mod_info = ModInfoModel.model_validate_json(modio_text)
+                installed_mods_info.append(mod_info)
+            except Exception:
+                print(colored(f"Failed to parse {modio_json_path}", "red"))
+                raise
 
     # get all needed mods info from server
     needed_mods_info, needed_mods_info_text = get_mods_info(game_config.mod_ids, config.api_key)
