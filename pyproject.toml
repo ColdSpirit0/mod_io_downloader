@@ -12,20 +12,30 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mod_io_downloader"
-version = "1.0.3"
+version = "1.0.4"
 authors = [{ name = "ColdSpirit" }]
 license = { file = "LICENSE" }
 description = "Downloads mods faster than mod.io plugin (for Mordhau Server)"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "annotated-types==0.7.0",
+    "certifi==2025.4.26",
+    "charset-normalizer==3.4.2",
+    "click==8.1.7",
+    "idna==3.10",
     "pathvalidate==3.2.0",
-    "pydantic==2.6.1",
+    "pydantic==2.11.5",
+    "pydantic_core==2.33.2",
     "requests==2.31.0",
+    "setuptools==80.9.0",
     "termcolor==2.4.0",
     "tqdm==4.66.2",
+    "typing-inspection==0.4.1",
+    "typing_extensions==4.14.0",
     "unreal_ini_parser==1.0.2",
-    "click==8.1.7",
+    "urllib3==2.4.0",
+    "wheel==0.45.1",
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
