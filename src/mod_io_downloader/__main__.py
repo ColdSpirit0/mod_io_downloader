@@ -51,36 +51,38 @@ def main(api_key: str, game_root: Path):
                 print(colored(f"Failed to parse {modio_json_path}", "red"))
                 raise
 
-    # get all needed mods info from server
-    needed_mods_info, needed_mods_info_text = get_mods_info(game_config.mod_ids, config.api_key)
+    # get mods info from server
+    remote_mods_info, remote_mods_info_text = get_mods_info(game_config.mod_ids, config.api_key)
     # Path("out.json").write_text(needed_mods_info_text, encoding="utf-8")
 
-    # check all needed mods are visible, show error instead
-    hidden_mods = [m for m in needed_mods_info.data if m.visible == 0]
+    # check all requested mods are visible, show error instead
+    remote_mod_ids = [m.mod_id for m in remote_mods_info.data]
+    hidden_mods = [m for m in game_config.mod_ids if m not in remote_mod_ids]
+
     if len(hidden_mods) > 0:
         print(colored("Mods are hidden:", "red"))
         for m in hidden_mods:
-            print(f"{m.mod_id}: {m.name}")
+            print(f"{m}")
         print(colored("Remove them from config, they can break your server", "red"))
         exit(1)
 
     # if mod is not installed or hash changed, add it to download list
     mods_to_download: list[ModInfoModel] = []
-    for needed_mod in needed_mods_info.data:
+    for remote_mod in remote_mods_info.data:
         # try to search for installed mod with same id
         installed_mod = None
         for mod_info in installed_mods_info:
-            if mod_info.mod_id == needed_mod.mod_id:
+            if mod_info.mod_id == remote_mod.mod_id:
                 installed_mod = mod_info
 
         # if mod not found, add to download list
         if installed_mod is None:
-            mods_to_download.append(needed_mod)
+            mods_to_download.append(remote_mod)
             continue
 
         # if hash changed, add to download list
-        if needed_mod.modfile.filehash.md5 != installed_mod.modfile.filehash.md5:
-            mods_to_download.append(needed_mod)
+        if remote_mod.modfile.filehash.md5 != installed_mod.modfile.filehash.md5:
+            mods_to_download.append(remote_mod)
             continue
 
     mods_local_path.mkdir(parents=True, exist_ok=True)

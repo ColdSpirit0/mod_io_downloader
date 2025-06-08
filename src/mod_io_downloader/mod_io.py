@@ -72,7 +72,7 @@ def download_mods(mods_local_path: Path, mods_to_download: list[ModInfoModel], c
 def get_mods_info(mod_ids: list[int], api_key: str):
 
     ids = ",".join(map(str, mod_ids))
-    url = f"https://api.mod.io/v1/games/169/mods?visible-in=0,1&id-in={ids}&api_key={api_key}"
+    url = f"https://api.mod.io/v1/games/169/mods?id-in={ids}&api_key={api_key}"
     response = requests.get(url)
 
     return ModsInfoModel.model_validate_json(response.text), response.text

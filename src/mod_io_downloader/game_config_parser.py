@@ -5,6 +5,6 @@ class GameConfigParser(IniParser):
     @property
     def mod_ids(self):
         try:
-            return self.get_values("/Script/Mordhau.MordhauGameSession", "Mods")
+            return self.get_values("/Script/Mordhau.MordhauGameSession", "Mods", int)
         except KeyNotFoundException:
             return []
